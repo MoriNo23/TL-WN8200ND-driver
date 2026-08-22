@@ -6031,12 +6031,24 @@ static int	cfg80211_rtw_dump_station(struct wiphy *wiphy, struct net_device *nde
 	int ret = 0;
 	_irqL irqL;
 	_adapter *padapter = (_adapter *)rtw_netdev_priv(ndev);
+	struct mlme_priv *pmlmepriv = &padapter->mlmepriv;
 	struct sta_priv *pstapriv = &padapter->stapriv;
 	struct sta_info *psta = NULL;
 #ifdef CONFIG_RTW_MESH
 	struct mesh_plink_ent *plink = NULL;
 #endif
 	u8 asoc_list_num;
+
+	/* [FIX 2026-08-22] En modo cliente el par conectado (el AP) no esta en la
+	 * lista de asociados; sin esta rama el dump no devuelve nada y NM/KDE
+	 * muestran Bitrate=0. Delegamos en get_station(), que llena TX_BITRATE. */
+	if (check_fwstate(pmlmepriv, WIFI_STATION_STATE)
+		&& check_fwstate(pmlmepriv, WIFI_ASOC_STATE)) {
+		if (idx != 0)
+			return -ENOENT;
+		_rtw_memcpy(mac, get_bssid(pmlmepriv), ETH_ALEN);
+		return cfg80211_rtw_get_station(wiphy, ndev, mac, sinfo);
+	}
 
 	if (DBG_DUMP_STATION)
 		RTW_INFO(FUNC_NDEV_FMT"\n", FUNC_NDEV_ARG(ndev));
@@ -10409,6 +10421,7 @@ static struct cfg80211_ops rtw_cfg80211_ops = {
 	.set_rekey_data = cfg80211_rtw_set_rekey_data,
 #endif /*CONFIG_GTK_OL*/
 	.get_station = cfg80211_rtw_get_station,
+	.dump_station = cfg80211_rtw_dump_station,
 	.scan = cfg80211_rtw_scan,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0)) && \
     defined(CONFIG_RTW_ABORT_SCAN)
@@ -10449,7 +10462,6 @@ static struct cfg80211_ops rtw_cfg80211_ops = {
 	.add_station = cfg80211_rtw_add_station,
 	.del_station = cfg80211_rtw_del_station,
 	.change_station = cfg80211_rtw_change_station,
-	.dump_station = cfg80211_rtw_dump_station,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 28))
 	.change_bss = cfg80211_rtw_change_bss,
 #endif
