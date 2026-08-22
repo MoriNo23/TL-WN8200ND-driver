@@ -28,7 +28,7 @@ Bus 001 Device 018: ID 2357:0126 TP-Link 802.11n NIC
 | Physical defect | antenna B connector desoldered → driver forced to 1T1R |
 | Host | ~2009 netbook, Intel Sandy Bridge, limited RAM |
 | Target kernel | Debian 6.12.x |
-| DKMS package | `rtl8192eu/1.6.3` |
+| DKMS package | `rtl8192eu/1.7.0` |
 
 The matching entry in the driver's USB ID table is
 `driver/os_dep/linux/usb_intf.c:212`:
@@ -124,26 +124,65 @@ The driver also exposes `/proc/net/rtl8192eu/<iface>/` debug interface even in c
 
 ## Install / manage
 
-Requires: kernel headers, build tools, dkms
+Requires: kernel headers, build tools, dkms, rsync
 
 ```bash
-sudo apt install -y linux-headers-$(uname -r) build-essential bc dkms
+sudo apt install -y linux-headers-$(uname -r) build-essential bc dkms rsync
 cd /path/to/rtl8192eu-wn8200nd-driver
-sudo ./install_manual.sh          # non-interactive (DKMS)
-# or
-sudo ./wifi_manager.sh            # interactive TUI (install/update/remove)
+
+make -C driver clean && make -j"$(nproc)" -C driver all   # compilar
+sudo ./install_manual.sh                                  # instalar/actualizar (único script)
 ```
 
-`install_manual.sh` (v3):
-1. Sync patched source to `/usr/src/rtl8192eu-1.6.3` + `dkms add` if missing
-2. `dkms build` + `dkms install --force` (the `.ko.xz` in `updates/dkms/` wins)
-3. Restart NetworkManager at the end
+`install_manual.sh` (v4) hace todo:
+1. Sincroniza el source parcheado a `/usr/src/rtl8192eu-<VER>` + `dkms add` si falta
+2. `dkms build` + `dkms install --force` (el `.ko.xz` de `updates/dkms/` tiene prioridad) + `depmod`
+3. Instala `scripts/reload-wn8200nd-1ant` en `~/.local/bin/` del usuario que invoca sudo
+4. Recarga el módulo y reinicia NetworkManager (no reconecta solo tras recarga)
+
+### Actualizar a mano (equivalente a lo que hace install_manual.sh)
+
+Si prefieres hacerlo paso a paso — por ejemplo tras un `git pull`:
+
+```bash
+VER=$(sed -n 's/^PACKAGE_VERSION="\(.*\)"/\1/p' dkms.conf)   # ej: 1.7.0
+
+# 1. Source parcheado a /usr/src (siempre fresco, nunca una copia olvidada)
+sudo mkdir -p /usr/src/rtl8192eu-$VER
+sudo rsync -a --delete \
+  --exclude '.git' --exclude '*.o' --exclude '*.ko' --exclude '*.cmd' \
+  --exclude '*.mod*' --exclude '.tmp_versions' \
+  --exclude 'Module.symvers' --exclude 'modules.order' \
+  ./ /usr/src/rtl8192eu-$VER/
+
+# 2. Registrar, compilar e instalar (depmod corre dentro; repetirlo no daña)
+sudo dkms add      -m rtl8192eu -v $VER    # solo si dkms status no lo lista
+sudo dkms build    -m rtl8192eu -v $VER    # si decía "already built, skip" tras cambiar source:
+                                           #   sudo dkms remove -m rtl8192eu -v $VER  primero
+sudo dkms install  -m rtl8192eu -v $VER --force
+sudo depmod -a "$(uname -r)"
+
+# 3. Cargar y verificar
+sudo modprobe 8192eu
+cat /sys/module/8192eu/version            # debe decir $VER
+strings /lib/modules/$(uname -r)/updates/dkms/8192eu.ko.xz | grep srcversion
+```
+
+⚠️ Si actualizas el source sin subir `PACKAGE_VERSION`, `dkms build` reutiliza la
+compilación anterior ("already built, skip") aunque uses `install --force`.
+Fuerza con: `sudo dkms remove -m rtl8192eu -v $VER` antes del build.
+
+### Recarga rápida (sin reinstalar)
+
+```bash
+~/.local/bin/reload-wn8200nd-1ant     # lo instala install_manual.sh
+```
 
 Check:
 
 ```bash
 lsmod | grep 8192
-cat /sys/module/8192eu/version     # 1.6.3
+cat /sys/module/8192eu/version
 ```
 
 ### Hardcoded params (source)

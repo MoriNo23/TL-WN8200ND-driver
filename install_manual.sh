@@ -1,14 +1,19 @@
 #!/bin/bash
-# install_manual.sh v3 — instalación/actualización del driver 8192eu
+# install_manual.sh v4 — instalación/actualización del driver 8192eu
+#
+# Único script del repo (v4, 2026-08-22): instala driver + herramienta de recarga.
 #
 # Estrategia (v3, 2026-07-30):
-#   1. Si dkms está instalado  → asegura el registro rtl8192eu/1.6 (sync source
+#   1. Si dkms está instalado  → asegura el registro rtl8192eu/<ver> (sync source
 #      parcheado a /usr/src + dkms add si falta) y usa `dkms build + install --force`
 #      como vía principal (el .ko.xz de updates/dkms tiene prioridad).
 #   2. Si dkms NO está instalado → vía manual: copia el .ko compilado a /lib/modules,
 #      elimina .ko.xz/.ko.zst de updates/dkms (que pisarían al manual).
 #   3. SIEMPRE al final: reinicia NetworkManager (systemctl restart NetworkManager)
 #      porque tras recargar el módulo NM no reconecta solo.
+#   Nuevo en v4:
+#   4. Instala scripts/reload-wn8200nd-1ant en ~/.local/bin del usuario que invoca
+#      sudo ($SUDO_USER) — recarga del módulo sin reinstalar.
 #
 # Uso: sudo ./install_manual.sh   (desde el repo raíz; make ya debe haber corrido)
 
@@ -103,12 +108,22 @@ else
     echo -e "${GREEN}[OK] .ko copiado a $KO_DST${NC}"
 fi
 
-# 4. Recargar módulo (desde cualquiera de las dos vías)
+# 4. Instalar herramienta de recarga para el usuario real (no root)
+REAL_USER="${SUDO_USER:-}"
+if [ -n "$REAL_USER" ] && [ "$REAL_USER" != "root" ] && [ -f "$REPO_DIR/scripts/reload-wn8200nd-1ant" ]; then
+    USER_BIN="/home/$REAL_USER/.local/bin"
+    mkdir -p "$USER_BIN"
+    install -m 755 "$REPO_DIR/scripts/reload-wn8200nd-1ant" "$USER_BIN/reload-wn8200nd-1ant"
+    chown "$REAL_USER:$REAL_USER" "$USER_BIN/reload-wn8200nd-1ant" 2>/dev/null || true
+    echo -e "${GREEN}[OK] Recarga instalada:${NC} $USER_BIN/reload-wn8200nd-1ant"
+fi
+
+# 5. Recargar módulo (desde cualquiera de las dos vías)
 echo -e "${YELLOW}[*] Cargando 8192eu...${NC}"
 modprobe 8192eu
 sleep 2
 
-# 5. Verificar carga
+# 6. Verificar carga
 if lsmod | grep -q "^8192eu "; then
     MODPATH=$(/sbin/modinfo 8192eu 2>/dev/null | grep '^filename:' | awk '{print $2}')
     echo -e "${GREEN}[OK] Módulo cargado:${NC} $MODPATH"
@@ -119,12 +134,12 @@ else
     exit 1
 fi
 
-# 6. Reiniciar NetworkManager (NO reconecta solo tras recarga del módulo)
+# 7. Reiniciar NetworkManager (NO reconecta solo tras recarga del módulo)
 echo -e "${YELLOW}[*] Reiniciando NetworkManager...${NC}"
 systemctl restart NetworkManager
 sleep 6
 
-# 7. Esperar asociación e IP
+# 8. Esperar asociación e IP
 echo -e "${YELLOW}[*] Esperando asociación e IP...${NC}"
 IP=""
 for i in $(seq 1 15); do
@@ -134,7 +149,7 @@ for i in $(seq 1 15); do
 done
 ip -4 addr show wn8200nd 2>/dev/null | grep inet || echo -e "${RED}[!] Sin IP aún — revisar nmcli device connect wn8200nd${NC}"
 
-# 8. Verificar parámetros runtime
+# 9. Verificar parámetros runtime
 echo -e "${GREEN}[OK] Parámetros activos:${NC}"
 for p in trx_path_bmp adaptivity_th_l2h_ini adaptivity_th_edcca_hl_diff rxgain_offset_2g notch_filter smart_ps; do
     echo "  rtw_$p = $(cat /sys/module/8192eu/parameters/rtw_$p 2>/dev/null || echo N/A)"

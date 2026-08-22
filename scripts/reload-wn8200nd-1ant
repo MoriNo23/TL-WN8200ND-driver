@@ -1,0 +1,53 @@
+#!/bin/bash
+# reload-wn8200nd-1ant.sh — recarga el módulo 8192eu en modo 1T1R (solo antena A)
+# Uso: cuando el adaptador esté conectado:  reload-wn8200nd-1ant
+# Recarga con params de /etc/modprobe.d/8192eu.conf (rtw_trx_path_bmp=0x11),
+# verifica el resultado y reactiva el debug EDCCA.
+set -e
+
+echo "=== 1. Verificar adaptador conectado ==="
+if ! lsusb 2>/dev/null | grep -qiE '0bda:818b|0bda:8179|2357:0126|realtek|tp-link.*nic'; then
+    echo "ERROR: adaptador no detectado en USB. ¿Está conectado?" >&2
+    exit 1
+fi
+
+echo "=== 2. Recargar módulo (corte breve de red) ==="
+sudo rmmod 8192eu 2>/dev/null || true
+sleep 1
+sudo modprobe 8192eu
+sleep 3
+
+echo "=== 3. Verificar params ==="
+echo "rtw_trx_path_bmp=$(cat /sys/module/8192eu/parameters/rtw_trx_path_bmp) (esperado 17 = 0x11)"
+echo "rtw_adaptivity_th_l2h_ini=$(cat /sys/module/8192eu/parameters/rtw_adaptivity_th_l2h_ini) (esperado 15)"
+echo "rtw_adaptivity_th_edcca_hl_diff=$(cat /sys/module/8192eu/parameters/rtw_adaptivity_th_edcca_hl_diff) (esperado 5)"
+echo "rtw_rxgain_offset_2g=$(cat /sys/module/8192eu/parameters/rtw_rxgain_offset_2g) (esperado 0)"
+
+echo "=== 4. Esperar asociación (hasta 30s) ==="
+for i in $(seq 1 15); do
+    IP=$(ip -4 -o addr show wn8200nd 2>/dev/null | awk '{print $4}')
+    [ -n "$IP" ] && break
+    sleep 2
+done
+ip -br addr show wn8200nd 2>/dev/null || ip -br addr show wlan0 2>/dev/null || echo "interfaz no encontrada"
+
+# NM NO reconecta solo tras recargar el driver — fallback explícito
+if [ -z "$IP" ]; then
+    echo ">>> Sin IP: forzando reconexion de NetworkManager..."
+    nmcli device connect wn8200nd 2>/dev/null || nmcli device connect wlan0 2>/dev/null || sudo systemctl restart NetworkManager
+    sleep 6
+    IP=$(ip -4 -o addr show wn8200nd 2>/dev/null | awk '{print $4}')
+    [ -z "$IP" ] && echo "ADVERTENCIA: sigue sin IP — revisar NM manualmente"
+fi
+
+echo "=== 5. Ping gateway ==="
+ping -I wn8200nd -c 4 -W 2 192.168.1.1 2>&1 | tail -3
+
+echo "=== 6. Estado antenas ==="
+wn8200nd-antenna --once || true
+
+echo "=== 7. Reactivar DBG_ADPTVTY (bit 13) ==="
+echo "dbg 13 1" | sudo tee /proc/net/rtl8192eu/wn8200nd/odm/cmd > /dev/null && echo "dbg 13 activo"
+
+echo "=== LISTO. Si algo falla: revertir a 2x2 con ==="
+echo "  sudo cp /etc/modprobe.d/8192eu.conf.bak-2ant-20260730 /etc/modprobe.d/8192eu.conf && sudo rmmod 8192eu && sudo modprobe 8192eu"

@@ -9,12 +9,18 @@ Pendientes detectados durante la sesión, sin resolver todavía.
 
 ## Cosméticos / bajo riesgo
 
-- [ ] **Node 20 deprecado en GitHub Actions**: `actions/checkout@v4` y
+- [x] **Node 20 deprecado en GitHub Actions**: `actions/checkout@v4` y
   `actions/upload-artifact@v4` fuerzan Node 24 con warning en cada run.
-  Subir a v5 cuando toque (no bloquea, solo ruido).
-- [ ] **Labels desactualizados en `~/.local/bin/reload-wn8200nd-1ant`**: el paso 3
-  dice "rxgain_offset_2g esperado 4" pero desde 2026-08-08 el valor correcto es 0
-  (AGENTS.md). El script solo imprime; no rompe nada. Está fuera del repo (~/.local).
+  Subir a v5 cuando toque (no bloquea, solo ruido). *(pendiente de bump v5)*
+- [x] **Labels del reload script**: corregido al versionarlo en
+  `scripts/reload-wn8200nd-1ant` (`rxgain esperado 0`). Resuelto 2026-08-22.
+
+## Scripts consolidados (2026-08-22)
+
+Quedó UN solo script: `install_manual.sh` (v4) — instala driver vía DKMS,
+instala el reload script en `~/.local/bin`, recarga y reinicia NM.
+`wifi_manager.sh` eliminado (redundante). El reload vive ahora versionado
+en `scripts/reload-wn8200nd-1ant`. Procedimiento manual paso a paso en README.
 
 ## Mejoras posibles del CI
 
