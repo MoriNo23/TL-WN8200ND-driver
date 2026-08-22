@@ -175,6 +175,15 @@ jobs:
           done
           echo "OK: los objetos de features apagadas no se compilan"
 
+      - name: Subir artefacto (solo validación — NO instalar en Debian)
+        if: always() && matrix.optional == false
+        uses: actions/upload-artifact@v4
+        with:
+          name: rtl8192eu-${{ steps.kver.outputs.kver }}-${{ github.sha }}
+          path: driver/8192eu.ko
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Nada quedó sin limpiar tras make clean
         run: |
           make clean
@@ -185,15 +194,6 @@ jobs:
             exit 1
           fi
           echo "OK: make clean limpia todo el árbol"
-
-      - name: Subir artefacto (solo validación — NO instalar en Debian)
-        if: always() && matrix.optional == false
-        uses: actions/upload-artifact@v4
-        with:
-          name: rtl8192eu-${{ steps.kver.outputs.kver }}-${{ github.sha }}
-          path: driver/8192eu.ko
-          if-no-files-found: warn
-          retention-days: 7
 
   # ---------------------------------------------------------------------------
   # 3. El toggle de Bluetooth debe seguir compilando (por si algún día se activa).
