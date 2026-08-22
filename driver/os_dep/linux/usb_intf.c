@@ -1441,7 +1441,9 @@ static int __init rtw_drv_entry(void)
 	usb_drv.drv_registered = _TRUE;
 	rtw_suspend_lock_init();
 	rtw_drv_proc_init();
+#ifdef CONFIG_RTW_NLRTW
 	rtw_nlrtw_init();
+#endif
 	rtw_ndev_notifier_register();
 	rtw_inetaddr_notifier_register();
 
@@ -1451,7 +1453,9 @@ static int __init rtw_drv_entry(void)
 		usb_drv.drv_registered = _FALSE;
 		rtw_suspend_lock_uninit();
 		rtw_drv_proc_deinit();
+#ifdef CONFIG_RTW_NLRTW
 		rtw_nlrtw_deinit();
+#endif
 		rtw_ndev_notifier_unregister();
 		rtw_inetaddr_notifier_unregister();
 		goto exit;
@@ -1474,7 +1478,9 @@ static void __exit rtw_drv_halt(void)
 
 	rtw_suspend_lock_uninit();
 	rtw_drv_proc_deinit();
+#ifdef CONFIG_RTW_NLRTW
 	rtw_nlrtw_deinit();
+#endif
 	rtw_ndev_notifier_unregister();
 	rtw_inetaddr_notifier_unregister();
 

@@ -13035,9 +13035,11 @@ int rtw_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 	case SIOCDEVPRIVATE:
 		ret = rtw_ioctl_wext_private(dev, rq);
 		break;
+#ifdef CONFIG_RTW_ANDROID_PRIV_CMD
 	case (SIOCDEVPRIVATE+1):
 		ret = rtw_android_priv_cmd(dev, rq, cmd);
 		break;
+#endif
 	default:
 		ret = -EOPNOTSUPP;
 		break;

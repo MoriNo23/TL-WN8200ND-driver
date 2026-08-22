@@ -242,9 +242,16 @@ _OS_INTFS_FILES :=	os_dep/osdep_service.o \
 			os_dep/linux/rtw_cfgvendor.o \
 			os_dep/linux/wifi_regd.o \
 			os_dep/linux/rtw_android.o \
-			os_dep/linux/rtw_proc.o \
-			os_dep/linux/nlrtw.o \
-			os_dep/linux/rtw_rhashtable.o
+			os_dep/linux/rtw_proc.o
+
+# [FIX 2026-08-22 / AUDIT 4] Excluidos del build desktop:
+#  - os_dep/linux/nlrtw.o: netlink de eventos para el daemon Android de
+#    Realtek, sin consumidor aqui (CONFIG_RTW_NLRTW apagado en drv_conf.h);
+#    sus call sites en usb_intf.c y rtw_wlan_util.c quedan guardados.
+#  - os_dep/linux/rtw_rhashtable.o: solo lo referencian mesh y WDS,
+#    ambas features desactivadas.
+#  - os_dep/linux/rtw_android.o se CONSERVA: sched_scan/PNO del escritorio
+#    usa sus funciones; solo se cerro su entrada ioctl Android privada.
 
 ifeq ($(CONFIG_MP_INCLUDED), y)
 _OS_INTFS_FILES += os_dep/linux/ioctl_mp.o

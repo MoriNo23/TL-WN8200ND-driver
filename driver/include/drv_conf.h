@@ -194,6 +194,12 @@
 	#define CONFIG_MONITOR_MODE_XMIT
 #endif
 
+/* [FIX 2026-08-22] Ioctls privados Android (SIOCDEVPRIVATE+1, parser de
+ * comandos legado alcanzable desde userspace). Desactivado por defecto;
+ * sched_scan/PNO sigue disponible porque usa otras funciones del mismo
+ * fichero que permanecen compiladas.
+ #define CONFIG_RTW_ANDROID_PRIV_CMD */
+
 #ifdef CONFIG_CUSTOMER_ALIBABA_GENERAL
 	#ifndef CONFIG_WIFI_MONITOR
 		#define CONFIG_WIFI_MONITOR
@@ -245,7 +251,10 @@
 	#define CONFIG_RTW_UNASOC_STA_MODE_OF_STYPE {2, 1} /* BMC:2 for all, NMY_UC:1 for interested target */
 	#endif
 	#ifndef CONFIG_RTW_NLRTW
-	#define CONFIG_RTW_NLRTW
+	/* [FIX 2026-08-22] Netlink de eventos para el daemon Android de Realtek:
+	 * sin consumidor en desktop. Apagado por defecto; sus 4 call sites
+	 * (usb_intf x3, rtw_wlan_util) quedan guardados con este mismo macro.
+	 #define CONFIG_RTW_NLRTW */
 	#endif
 	#ifndef CONFIG_RTW_WNM
 	#define CONFIG_RTW_WNM

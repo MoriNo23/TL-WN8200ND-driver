@@ -5367,8 +5367,10 @@ void rtw_ch_util_rpt(_adapter *adapter)
 		}
 	}
 
+#ifdef CONFIG_RTW_NLRTW
 	if (need_rpt)
 		rtw_nlrtw_ch_util_rpt(adapter, i_rpts, ch_util, bssid);
+#endif
 
 	rtw_mfree(ch_util, sizeof(u8) * dvobj->iface_nums);
 	for (i = 0; i < dvobj->iface_nums; i++)
