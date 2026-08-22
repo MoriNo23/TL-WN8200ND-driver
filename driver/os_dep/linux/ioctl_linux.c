@@ -1350,9 +1350,20 @@ static int rtw_wx_get_freq(struct net_device *dev,
 		wrqu->freq.i = pcur_bss->Configuration.DSConfig;
 
 	} else {
-		wrqu->freq.m = rtw_ch2freq(padapter->mlmeextpriv.cur_channel) * 100000;
+		/* [FIX 2026-08-22] En monitor, mlmeextpriv.cur_channel queda clavado
+		 * al ultimo canal asociado: rtw_set_chbw_hdl solo lo refresca para
+		 * STAs enlazadas (ifbmp_s), asi que aireplay-ng veia "is on channel
+		 * 11, but the AP uses channel 6" aunque el RF si estaba en el canal
+		 * pedido. Reportar el canal operativo real (actualizado por
+		 * rtw_mi_update_union_chan_inf en cada set_channel). */
+		u8 oper_ch = rtw_get_oper_ch(padapter);
+
+		if (oper_ch == 0)
+			oper_ch = padapter->mlmeextpriv.cur_channel;
+
+		wrqu->freq.m = rtw_ch2freq(oper_ch) * 100000;
 		wrqu->freq.e = 1;
-		wrqu->freq.i = padapter->mlmeextpriv.cur_channel;
+		wrqu->freq.i = oper_ch;
 	}
 
 	return 0;
