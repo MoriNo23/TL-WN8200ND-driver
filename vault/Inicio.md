@@ -14,6 +14,7 @@ Versión actual del paquete DKMS: **1.7.0** (ver [[Versionado y DKMS]]).
 - [[Bitrate en NetworkManager y KDE]] — dump_station + tasas dinámicas reales
 - [[Herramientas pentest]] — monitor por defecto + fix de inyección radiotap
 - [[Diagnóstico en vivo]] — comandos para verificar la cadena driver→kernel→NM
+- [[Auditoría de APIs viejas]] — sweep de código vendor para APIs obsoletas + prioridades
 
 ## Estado y pendientes
 
