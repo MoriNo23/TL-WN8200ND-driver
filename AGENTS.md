@@ -192,6 +192,24 @@ Son variables separadas: module_param se copia a registry_priv solo al init.
   `~/.local/bin/reload-wn8200nd-1ant` por install_manual.sh
 - Parámetros configurables: `/etc/modprobe.d/8192eu.conf` (EDCCA) + `/etc/modprobe.d/rtl8192eu.conf` (paths/1T1R)
 
+## Testing con el adaptador — regla obligatoria
+
+Cualquier script o comando de prueba (agente IA o humano) que ponga `wn8200nd` en
+modo monitor, cambie canales o detenga NetworkManager/wpa_supplicant **DEBE, como
+último paso después de su salida final**, devolver el equipo a estado usable:
+
+```bash
+sudo ip link set wn8200nd down
+sudo iw dev wn8200nd set type managed
+sudo ip link set wn8200nd up
+sudo systemctl restart NetworkManager
+# verificar: ip -4 addr show wn8200nd debe tener IP
+```
+
+Sin excepciones: el usuario sigue usando la máquina entre pruebas. Si un test
+falla a mitad de camino, la restauración corre IGUAL (usar `;` en vez de `&&`
+en la parte de limpieza, nunca dejar la interfaz en monitor).
+
 ## Monitoreo pasivo
 `monitoring/rx_drop_watchdog.sh` vía cron cada 30min:
 - Lee rx_dropped/rx_packets de sysfs, compara con último estado
