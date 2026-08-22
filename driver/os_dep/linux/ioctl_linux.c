@@ -2576,8 +2576,23 @@ static int rtw_wx_get_rate(struct net_device *dev,
 			   union iwreq_data *wrqu, char *extra)
 {
 	u16 max_rate = 0;
+	_adapter *padapter = (_adapter *)rtw_netdev_priv(dev);
+	struct sta_info *psta;
+	u32 cur_rate;
 
-	max_rate = rtw_get_cur_max_rate((_adapter *)rtw_netdev_priv(dev));
+	/* [FIX 2026-08-22] Tasa real del rate control (fluctua); el techo
+	 * negociado solo como fallback antes del primer reporte del FW. */
+	psta = rtw_get_stainfo(&padapter->stapriv, get_bssid(&padapter->mlmepriv));
+	if (psta) {
+		cur_rate = rtw_desc_rate_to_bitrate(psta->cmn.bw_mode,
+			rtw_get_current_tx_rate(padapter, psta),
+			rtw_get_current_tx_sgi(padapter, psta));
+		if (cur_rate)
+			max_rate = (u16)cur_rate;
+	}
+
+	if (max_rate == 0)
+		max_rate = rtw_get_cur_max_rate(padapter);
 
 	if (max_rate == 0)
 		return -EPERM;

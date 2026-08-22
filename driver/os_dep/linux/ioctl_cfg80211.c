@@ -34,6 +34,7 @@
 #define STATION_INFO_PLINK_STATE	BIT(NL80211_STA_INFO_PLINK_STATE)
 #define STATION_INFO_SIGNAL			BIT(NL80211_STA_INFO_SIGNAL)
 #define STATION_INFO_TX_BITRATE		BIT(NL80211_STA_INFO_TX_BITRATE)
+#define STATION_INFO_RX_BITRATE		BIT(NL80211_STA_INFO_RX_BITRATE)
 #define STATION_INFO_RX_PACKETS		BIT(NL80211_STA_INFO_RX_PACKETS)
 #define STATION_INFO_TX_PACKETS		BIT(NL80211_STA_INFO_TX_PACKETS)
 #define STATION_INFO_TX_FAILED		BIT(NL80211_STA_INFO_TX_FAILED)
@@ -2564,8 +2565,20 @@ static int cfg80211_rtw_get_station(struct wiphy *wiphy,
 		sinfo->filled |= STATION_INFO_SIGNAL;
 		sinfo->signal = translate_percentage_to_dbm(padapter->recvpriv.signal_strength);
 
-		sinfo->filled |= STATION_INFO_TX_BITRATE;
-		sinfo->txrate.legacy = rtw_get_cur_max_rate(padapter);
+		/* [FIX 2026-08-22] Tasas reales (RA del firmware / RX por paquete),
+		 * no el techo negociado: asi el valor flota con las condiciones
+		 * del enlace como en los drivers mainline. Unidades 100Kbps. */
+		if (psta) {
+			sinfo->filled |= STATION_INFO_TX_BITRATE;
+			sinfo->txrate.legacy = rtw_desc_rate_to_bitrate(psta->cmn.bw_mode,
+				rtw_get_current_tx_rate(padapter, psta),
+				rtw_get_current_tx_sgi(padapter, psta));
+
+			sinfo->filled |= STATION_INFO_RX_BITRATE;
+			sinfo->rxrate.legacy = rtw_desc_rate_to_bitrate(psta->cmn.bw_mode,
+				psta->curr_rx_rate & 0x7f,
+				(psta->curr_rx_rate & 0x80) >> 7);
+		}
 	}
 
 	if (psta) {

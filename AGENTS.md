@@ -35,7 +35,7 @@ comportamiento/optimizaciones, major para cambios estructurales. Bump → renomb
 ### CHANGELOG
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
-| 1.7.0 | 2026-08-22 | **Bitrate/senal visible en NetworkManager y KDE plasma-nm**: `.dump_station` registrado en cfg80211_ops con rama cliente (delega en `get_station`, llena `TX_BITRATE`); el dump de NM (`NLM_F_DUMP`) devolvía vacío porque la función original solo recorre estaciones asociadas (rol AP) |
+| 1.7.0 | 2026-08-22 | **Bitrate/senal visible en NetworkManager y KDE plasma-nm**: `.dump_station` registrado en cfg80211_ops con rama cliente (delega en `get_station`, llena `TX_BITRATE`); el dump de NM (`NLM_F_DUMP`) devolvía vacío porque la función original solo recorre estaciones asociadas (rol AP). Tasas **dinámicas** reales (RA del firmware vía C2H + RX por paquete con `rtw_desc_rate_to_bitrate`), no el techo negociado; también en wext (`rtw_wx_get_rate`) |
 | 1.6.4 | 2026-08-22 | CI reparado y en verde: workflow activado (pull_request + sanity + build con KVER autodetectado); fix modpost (`hal_phy.o` incondicional, `CONFIG_PSD_TOOL=y`); aserciones AP con símbolos reales; artefacto se sube antes del clean |
 | 1.6.3 | 2026-08-22 | HT40 reactivado (0x20→0x21); **fix use-after-free** del work de URB stall (`cancel_work_sync` en disconnect); contador propio de stalls USB; orden EPIPE/escalado corregido; `make clean` arreglado; 10 ficheros clon (Windows) eliminados; 1 MB menos de fuente compilada; skills obligatorias; `docs/AUDIT.md` |
 | 1.6.2 | 2026-08-13 | CONFIG_AP_MODE=y habilitado (softAP/hostapd en wn8200nd); bump DKMS 1.6.2; CI build-check en GitHub (matriz kernels) |
