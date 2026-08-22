@@ -187,7 +187,11 @@
 #endif
 
 #ifdef CONFIG_WIFI_MONITOR
-	/*	#define CONFIG_MONITOR_MODE_XMIT	*/
+	/* [FIX 2026-08-22] Sin este macro, el camino cfg80211 (iw dev set type
+	 * monitor) no ejecuta rtw_indicate_connect() y TODO frame inyectado se
+	 * descarta en silencio; el camino WEXT (iwconfig) no depende del macro y
+	 * por eso si inyectaba. Con el definido ambas APIs quedan equivalentes. */
+	#define CONFIG_MONITOR_MODE_XMIT
 #endif
 
 #ifdef CONFIG_CUSTOMER_ALIBABA_GENERAL
