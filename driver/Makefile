@@ -65,6 +65,10 @@ CONFIG_USB_AUTOSUSPEND = n
 CONFIG_HW_PWRP_DETECTION = n
 CONFIG_BT_COEXIST = n
 CONFIG_WAPI_SUPPORT = n
+# [FIX 2026-08-22] El macro CONFIG_PSD_TOOL viene definido desde
+# phydm_features_iot.h (no se puede apagar por aqui), asi que la variable de make
+# debe estar a 'y' o phydm_psd.o no compila y el link falla con simbolos indefinidos.
+CONFIG_PSD_TOOL = y
 CONFIG_EFUSE_CONFIG_FILE = n
 CONFIG_EXT_CLK = n
 CONFIG_TRAFFIC_PROTECT = y
@@ -2430,7 +2434,9 @@ $(MODULE_NAME)-$(CONFIG_RTW_WDS) += core/wds/rtw_wds.o
 $(MODULE_NAME)-$(CONFIG_RTW_MESH) += core/mesh/rtw_mesh.o core/mesh/rtw_mesh_pathtbl.o core/mesh/rtw_mesh_hwmp.o
 $(MODULE_NAME)-$(CONFIG_BEAMFORMING) += core/rtw_beamforming.o
 $(MODULE_NAME)-$(CONFIG_IOL) += core/rtw_iol.o
-$(MODULE_NAME)-$(CONFIG_RF_SHADOW_RW) += hal/hal_phy.o
+# [FIX 2026-08-22] hal_phy.c NO era un objeto vacio: contiene PHY_CalculateBitShift(),
+# llamada sin guard desde hal_intf.c y rtl8192e_phycfg.c -> excluirlo rompe el link.
+$(MODULE_NAME)-y += hal/hal_phy.o
 # NOTA: core/rtw_btcoex.o NO puede ser condicional: rtw_btcoex_set_ant_info() y
 # rtw_btcoex_connect_notify() estan FUERA del #ifdef CONFIG_BT_COEXIST y se llaman
 # sin guard desde hal/rtl8192e/usb/usb_halinit.c -> excluirlo rompe el link.
