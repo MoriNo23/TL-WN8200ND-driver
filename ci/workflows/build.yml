@@ -148,7 +148,7 @@ jobs:
           modinfo -p driver/8192eu.ko \
             | grep -E "rtw_enusbss|rtw_en_napi|rtw_usb_rxagg|rtw_dynamic_agg|rtw_bw_mode|rtw_trx_path_bmp"
           echo "=== AP MODE (softAP/hostapd) ==="
-          for sym in rtw_ap_mode_sta_assoc_state_notify rtw_ap_br_port_control rtw_check_beacon_data; do
+          for sym in rtw_check_beacon_data init_mlme_ap_info rtw_macaddr_acl_init; do
             strings driver/8192eu.ko | grep -q "$sym" \
               && echo "OK: $sym" || { echo "ERROR: falta $sym"; exit 1; }
           done
