@@ -12,6 +12,7 @@ Versión actual del paquete DKMS: **1.7.0** (ver [[Versionado y DKMS]]).
 
 - [[Reparación del CI]] — workflow roto → verde en 4 jobs
 - [[Bitrate en NetworkManager y KDE]] — dump_station + tasas dinámicas reales
+- [[Herramientas pentest]] — monitor por defecto + fix de inyección radiotap
 - [[Diagnóstico en vivo]] — comandos para verificar la cadena driver→kernel→NM
 
 ## Estado y pendientes

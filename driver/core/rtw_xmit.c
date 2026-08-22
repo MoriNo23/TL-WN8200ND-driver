@@ -4708,6 +4708,7 @@ static void do_queue_select(_adapter	*padapter, struct pkt_attrib *pattrib)
  *	<0	fail
  */
  #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24))
+#define RTW_RADIOTAP_TX_HDR_MAX 64
 s32 rtw_monitor_xmit_entry(struct sk_buff *skb, struct net_device *ndev)
 {
 	u16 frame_ctl;
@@ -4720,7 +4721,6 @@ s32 rtw_monitor_xmit_entry(struct sk_buff *skb, struct net_device *ndev)
 	struct mlme_ext_priv	*pmlmeext = &(padapter->mlmeextpriv);
 	struct xmit_priv	*pxmitpriv = &(padapter->xmitpriv);
 	unsigned char	*pframe;
-	u8 dummybuf[32];
 	int len = skb->len, rtap_len;
 
 
@@ -4730,21 +4730,62 @@ s32 rtw_monitor_xmit_entry(struct sk_buff *skb, struct net_device *ndev)
 	if (unlikely(skb->len < sizeof(struct ieee80211_radiotap_header)))
 		goto fail;
 
-	_rtw_open_pktfile((_pkt *)skb, &pktfile);
-	_rtw_pktfile_read(&pktfile, (u8 *)(&rtap_hdr), sizeof(struct ieee80211_radiotap_header));
+	_rtw_memcpy(&rtap_hdr, skb->data, sizeof(struct ieee80211_radiotap_header));
 	rtap_len = ieee80211_get_radiotap_len((u8 *)(&rtap_hdr));
 	if (unlikely(rtap_hdr.it_version))
 		goto fail;
 
-	if (unlikely(skb->len < rtap_len))
+	/* [FIX 2026-08-22] Antes se exigia rtap_len == 12 exacto: aircrack-ng,
+	 * hcxdumptool y mdk4 emiten headers con TX_FLAGS u otros campos que
+	 * miden distinto y toda la inyeccion moria aqui ("no injection").
+	 * Ahora se acepta cualquier header bien formado dentro del skb. */
+	if (unlikely(rtap_len < (int)sizeof(struct ieee80211_radiotap_header)))
 		goto fail;
 
-	if (rtap_len != 12) {
-		RTW_INFO("radiotap len (should be 14): %d\n", rtap_len);
+	if (unlikely(rtap_len > RTW_RADIOTAP_TX_HDR_MAX || skb->len < rtap_len))
 		goto fail;
+
+	/* Si el header trae IEEE80211_RADIOTAP_F_FCS (0x10), el FCS viaja en el
+	 * payload y hay que quitarlo: el hardware agrega el suyo. */
+	{
+		u32 present = le32_to_cpu(rtap_hdr.it_present);
+		int hoff = sizeof(struct ieee80211_radiotap_header);
+		u8 fcs_in_payload = 0;
+
+		while (present & (1u << 31)) { /* palabras extendidas del bitmap */
+			u32 w;
+			if ((hoff + 4) > rtap_len)
+				goto fail;
+			_rtw_memcpy(&w, skb->data + hoff, 4);
+			present = le32_to_cpu(w);
+			hoff += 4;
+		}
+
+		if (present & BIT(0)) /* TSFT: u64 alineado a 8 */
+			hoff = ALIGN(hoff, 8) + 8;
+
+		if (present & BIT(1)) { /* FLAGS: u8 */
+			u8 rtflags;
+			if ((hoff + 1) > rtap_len)
+				goto fail;
+			rtflags = *(skb->data + hoff);
+			fcs_in_payload = (rtflags & 0x10) ? 1 : 0;
+		}
+
+		if (hoff > rtap_len)
+			goto fail;
+
+		len = len - rtap_len;
+		if (fcs_in_payload && len >= 4)
+			len -= 4;
 	}
-	_rtw_pktfile_read(&pktfile, dummybuf, rtap_len-sizeof(struct ieee80211_radiotap_header));
-	len = len - rtap_len;
+
+	_rtw_open_pktfile((_pkt *)skb, &pktfile);
+	_rtw_pktfile_read(&pktfile, (u8 *)(&rtap_hdr), sizeof(struct ieee80211_radiotap_header));
+	{
+		u8 skipbuf[RTW_RADIOTAP_TX_HDR_MAX];
+		_rtw_pktfile_read(&pktfile, skipbuf, rtap_len - sizeof(struct ieee80211_radiotap_header));
+	}
 #endif
 	pmgntframe = alloc_mgtxmitframe(pxmitpriv);
 	if (pmgntframe == NULL) {

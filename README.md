@@ -92,30 +92,27 @@ Then reinstall (see below).
 | WPA2/WPA3 | yes | ✅ enabled | — |
 | 2.4 GHz HT20/HT40 | yes | ✅ HT40 (`0x21`) | `rtw_bw_mode=0x20` forces HT20 |
 | 2x2 MIMO | yes | 1T1R (antenna A) | `rtw_trx_path_bmp=0x33` |
-| Monitor mode | yes | ❌ disabled by build | `CONFIG_WIFI_MONITOR=y` + rebuild |
-| Monitor + packet injection (combined) | **no** | ❌ | not supported — see below |
+| Monitor mode | yes | ✅ enabled since 1.7.0 | — |
+| Packet injection (monitor) | yes | ⚠️ radiotap fix in 1.7.0, on-air test pending | test: `aireplay-ng -9 <mon>` |
 | AP mode (softAP / hostapd) | yes | ✅ enabled since 1.6.2 | — |
 
 ## Monitor mode & pentesting
 
-**This adapter can capture traffic (monitor mode), but it cannot do monitor + packet injection at the same time.** If you need to test a WiFi network (deauth, Mana, WPS brute), this is NOT the adapter for you. It is fine for:
+**Monitor mode is enabled by default since 1.7.0, and the injection path was fixed (it used to reject every radiotap header whose length was not exactly 12 bytes — aircrack-ng/hcxdumptool emit different lengths, which silently killed all injection). On-air validation with `aireplay-ng -9` is still pending.** It is good for:
 
 - passive traffic analysis / packet capture
 - channel scan / spectrum dump (aircrack-ng suite, tshark)
 
-How to enable monitor mode (requires rebuild):
+How to use monitor mode:
 
 ```bash
-# 1. enable in driver/Makefile
-sed -i 's/^CONFIG_WIFI_MONITOR = n$/CONFIG_WIFI_MONITOR = y/' driver/Makefile
-
-# 2. rebuild + install
-sudo ./install_manual.sh
-
-# 3. use it
+# 1. switch interface to monitor
 sudo ip link set wn8200nd down
 sudo iw dev wn8200nd set type monitor
 sudo ip link set wn8200nd up
+
+# 2. test injection
+sudo aireplay-ng -9 wn8200nd
 ```
 
 The driver also exposes `/proc/net/rtl8192eu/<iface>/` debug interface even in client mode (RSSI, RX stats, adaptivity write) because `CONFIG_PROC_DEBUG=y` is on.
