@@ -211,12 +211,19 @@ falla a mitad de camino, la restauración corre IGUAL (usar `;` en vez de `&&`
 en la parte de limpieza, nunca dejar la interfaz en monitor).
 
 ## Monitoreo pasivo
-`monitoring/rx_drop_watchdog.sh` vía cron cada 30min:
+`monitoring/rx_drop_watchdog.sh` vía cron cada 30min (job Hermes rx-drop-watchdog):
+
 - Lee rx_dropped/rx_packets de sysfs, compara con último estado
 - Escribe CSV en `monitoring/rx_drop_monitor_YYYY-MM-DD_HHMMSS.csv` (uno por ejecución)
 - Filtra falsos positivos: interfaz down, sin IP/gateway, contadores reseteados
 - Solo alerta cuando drops > 0
 - Cron (Hermes): rx-drop-watchdog, job_id 1db902a53a75
+
+`monitoring/dig_fa_watchdog.sh`: muestrea fa_cnt e IGI del DIG (habilita DBG_DIG
+6s vía odm/cmd, luego lo apaga — no toca la red). Escribe CSV en
+`monitoring/dig_fa_monitor_*.csv`. fa_cnt >800 = tormenta de falsas alarmas =
+episodio de desensibilizacion (ver [[vault/Sordera por ruido vecinal]]). Con días
+de CSV se ven los horarios de los vecinos ruidosos.
 
 ## Parámetros Runtime Ajustables
 ```
