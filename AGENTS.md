@@ -80,6 +80,9 @@ Driver WiFi USB: TL-WN8200ND(UN) V3.0 (RTL8192EU). DVD oficial V2.0.
 ## MIMO
 - `rtw_trx_path_bmp=0x11` — **1T1R forzado (solo antena A/path 0)** — ver parche abajo
 - `rtw_antdiv_cfg=1` — antenna diversity forzada
+- **Hardware fisico (2026-08-22)**: antena dentro de cantenna direccional artesanal
+  (lata de Pringles con agujero) apuntando al router. Enlace direccional hecho a mano:
+  por eso 1T1R+rxgain=0 rinde; no es una omni deficiente.
 
 ### ⚠️ Parche 1T1R (2026-07-30) — conector antena B desoldado
 El conector físico de la antena B (path RF 1) está desoldado (hardware roto, confirmado
@@ -126,7 +129,7 @@ callback URB, duerme). Piezas obligatorias — **no tocar sin leer esto**:
 | `rtw_rxgain_offset_2g` | 0 | Sin atenuación LNA (2026-08-08: era 4; con señal débil atenuar empeora sensibilidad — medido +19 dB y 3.2x throughput) |
 | `rtw_notch_filter` | 1 | Filtro notch |
 | `rtw_smart_ps` | 0 | Sin ahorro energía |
-| `rtw_bw_mode` | 0x21 | **HT40 activo en 2.4G** (2026-08-22: reactivado; era 0x20/HT20 desde 2026-08-08). Bit 0-3 = 2.4G, bit 4-7 = 5G. Default del source (`os_intfs.c:246`) ya es 0x21 |
+| `rtw_bw_mode` | 0x21 | **HT40 activo en 2.4G** (2026-08-22: reactivado; era 0x20/HT20 desde 2026-08-08). Bit 0-3 = 2.4G, bit 4-7 = 5G. Default del source (`os_intfs.c:246`) ya es 0x21 | [CONF SISTEMA ALINEADA 2026-08-22 noche: /etc/modprobe.d/8192eu.conf ahora 0x21, verificado 40 MHz negociado en vivo]
 
 ### Init override (parche aplicado)
 `phydm_set_l2h_th_ini_carrier_sense()` en `driver/hal/phydm/phydm_adaptivity.c:350`
